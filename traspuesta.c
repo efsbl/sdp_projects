@@ -10,8 +10,10 @@ double dwalltime(void);
 double *A, *At, *C;
 int N, T;
 //Funcion que realizan los threads
-void *threadfun(void *arg){
-	
+void *threadFunc(void *arg){
+	int tid = *(int*)arg;
+	printf("Hilo id: %d\n", tid);
+	pthread_exit(NULL);	
 }
 
 int main(int argc, char*argv[]){
@@ -56,11 +58,25 @@ int main(int argc, char*argv[]){
 		printf("Multiplicacion de matrices resultado correcto\n");
 	else
 		printf("Multiplicacion de matrices resultado erroneo\n");
+
+	
+	pthread_t misThreads[T];
+	int threads_ids[T];
+	
+	for(int id=0; id<T; id++){
+		threads_ids[id] = id;
+		pthread_create(&misThreads[id], NULL, &threadFunc, (void*)&threads_ids[id]);
+	}
+
+	for(int id=0; id<T; id++){
+		pthread_join(misThreads[id], NULL);
+	}	
 	
 	free(A);	
 	free(At);
 	free(C);
-	return 1;
+
+	return 0;
 
 
 }
