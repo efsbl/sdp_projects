@@ -8,7 +8,7 @@ double dwalltime(void);
 
 double *A, *At, *C;
 int N, T;
-int mode = 0; // mode = 0 -> transpose ; mode = 1 -> multiply 
+int mode = 0; // mode = 0 -> transpose ; mode = 1 -> multiply
 
 void *funcion(void *arg){
 	int i, j, k;
@@ -20,7 +20,7 @@ void *funcion(void *arg){
 			for(j=0; j<N; j++){
 				At[j*N+i] = A[i*N+j];
 			}
-		}	
+		}
 	}else{
 		for(i=desde; i<hasta; i++){
 			for(j=0; j<N; j++){
@@ -31,7 +31,7 @@ void *funcion(void *arg){
 			}
 		}
 	}
-	
+
 	pthread_exit(NULL);
 }
 
@@ -59,8 +59,6 @@ int main(int argc, char *argv[]){
 
 	initMatrix(A, N);
 
-  	printf("\n\n");
-
  	for(int id=0; id<T; id++){
         threads_ids[id] = id;
         pthread_create(&misThreads[id], NULL, &funcion, (void*)&threads_ids[id]);
@@ -76,7 +74,7 @@ int main(int argc, char *argv[]){
 
 	mode = 1;
 	//Multiplicacion
-	
+
 	for(int id=0; id<T; id++){
 		pthread_join(misThreads[id], NULL);
 	}
