@@ -2,8 +2,8 @@
 #include<stdlib.h>
 #include<pthread.h>
 
-void initMatrix(double*, int);
-void printMatrix(double* , int);
+void initMatrix(double *, int);
+void printMatrix(double *, int);
 double dwalltime(void);
 
 double *A, *At, *C;
@@ -36,7 +36,7 @@ void *funcion(void *arg){
 }
 
 
-int main(int argc, char*argv[]){
+int main(int argc, char *argv[]){
 
 	int i, j, k;
 	int check = 1;
@@ -94,7 +94,7 @@ int main(int argc, char*argv[]){
 	return 0;
 }
 
-void initMatrix(double* A, int N){
+void initMatrix(double *A, int N){
 	int i, j;
 	for(i=0; i<N; i++){
 		for(j=0; j<N; j++){
@@ -103,7 +103,7 @@ void initMatrix(double* A, int N){
 	}
 }
 
-void printMatrix(double* A, int N){
+void printMatrix(double *A, int N){
 	int i, j;
 	for(i=0; i<N; i++){
 		for(j=0; j<N; j++) {
