@@ -4,6 +4,7 @@
 
 void initMatrix(double*, int);
 void printMatrix(double* , int);
+double dwalltime(void);
 
 double *A, *At, *C;
 int N, T;
@@ -39,6 +40,7 @@ int main(int argc, char*argv[]){
 
 	int i, j, k;
 	int check = 1;
+	double timetick;
 
 	if (argc < 3){
    		printf("\n Faltan argumentos:: N dimension de la matriz, T cantidad de threads \n");
@@ -57,9 +59,6 @@ int main(int argc, char*argv[]){
 
 	initMatrix(A, N);
 
-  	printf("\n");
-  	printMatrix(A, N);
-
   	printf("\n\n");
 
  	for(int id=0; id<T; id++){
@@ -67,14 +66,13 @@ int main(int argc, char*argv[]){
         pthread_create(&misThreads[id], NULL, &funcion, (void*)&threads_ids[id]);
     }
 
+
+    /* Transposicion + Multiplicacion */
+    timetick = dwalltime();
     //Trasposicion
 	for(int id=0; id<T; id++){
 		pthread_join(misThreads[id], NULL);
 	}
-
-	printMatrix(A, N);
-	printf("\n\n");
-	printMatrix(At, N);
 
 	mode = 1;
 	//Multiplicacion
@@ -83,7 +81,7 @@ int main(int argc, char*argv[]){
 		pthread_join(misThreads[id], NULL);
 	}
 
-	printf("\n\n");
+	printf("Tiempo en segundos %f \n", dwalltime() - timetick);
 
 	if(check)
 		printf("Multiplicacion de matrices resultado correcto\n");
@@ -115,4 +113,11 @@ void printMatrix(double* A, int N){
 	}
 }
 
-
+#include<sys/time.h>
+double dwalltime(){
+	double sec;
+	struct timeval tv;
+	gettimeofday(&tv, NULL);
+	sec = tv.tv_sec + tv.tv_usec/1000000.0;
+	return sec;
+}
