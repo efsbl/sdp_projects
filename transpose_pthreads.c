@@ -59,25 +59,24 @@ int main(int argc, char *argv[]){
 
 	initMatrix(A, N);
 
- 	for(int id=0; id<T; id++){
+    /* Trasposicion + Multiplicacion */
+    for(int id=0; id<T; id++){
         threads_ids[id] = id;
         pthread_create(&misThreads[id], NULL, &funcion, (void*)&threads_ids[id]);
     }
-
-
-    /* Trasposicion + Multiplicacion */
     timetick = dwalltime();
     //Trasposicion
 	for(int id=0; id<T; id++){
 		pthread_join(misThreads[id], NULL);
 	}
 
+    mode = 1;
+
     for(int id=0; id<T; id++){
         threads_ids[id] = id;
         pthread_create(&misThreads[id], NULL, &funcion, (void*)&threads_ids[id]);
     }
 
-	mode = 1;
 	//Multiplicacion
 
 	for(int id=0; id<T; id++){
