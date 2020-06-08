@@ -72,6 +72,11 @@ int main(int argc, char *argv[]){
 		pthread_join(misThreads[id], NULL);
 	}
 
+    for(int id=0; id<T; id++){
+        threads_ids[id] = id;
+        pthread_create(&misThreads[id], NULL, &funcion, (void*)&threads_ids[id]);
+    }
+
 	mode = 1;
 	//Multiplicacion
 
@@ -87,7 +92,7 @@ int main(int argc, char *argv[]){
 			check=check&&(C[i*N+j]==N);
   		 }
   	}
-  	
+
 	if(check)
 		printf("Multiplicacion de matrices resultado correcto\n");
 	else
