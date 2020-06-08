@@ -9,10 +9,32 @@ double dwalltime(void);
 
 double *A, *At, *C;
 int N, T;
+int mode = 0; // if mode = 0 transpose, if mode = 1 mult.
+
 //Funcion que realizan los threads
 void *threadFunc(void *arg){
 	int tid = *(int*)arg;
-	printf("Hilo id: %d\n", tid);
+	int i, j, k;
+	int hasta = (tid+1)*N/T;
+	if (mode == 0){	
+		//Transposicion	
+		for(i=tid*N/T; i<hasta; i++){
+			for(j=i+1; j<N; j++) {
+				At[j*N+i] = A[i*N+j];
+			}
+		
+		}
+	}else{
+		//Multiplicacion	
+		for(i=tid*N/T; i<hasta; i++){
+			for(j=0; j<N; j++){
+				C[i*N+j] = 0;
+				for(k=0; k<N; k++){
+					C[i*N+j] = C[i*N+j] + A[i*N+k] * At[k+j*N];
+				}
+			}
+		}	
+	}
 	pthread_exit(NULL);	
 }
 
@@ -35,17 +57,37 @@ int main(int argc, char*argv[]){
 	//Inicializa la matriz A en 1, el resultado sera una matriz con todos sus valores en N
 	initMatrix(A, N);
 	initMatrix(At, N);
-	transposeMatrix(At, N);	
 
 	//Multiplicacion secuencial	
-	for (i=0; i<N; i++){
-		for (j=0; j<N; j++){
-			C[i*N+j]=0;
-			for (k=0; k<N; k++){
-				C[i*N+j] = C[i*N+j] + A[i*N+k] * At[k+j*N];
-			}
-		}
-	}	
+	//for (i=0; i<N; i++){
+	//	for (j=0; j<N; j++){
+	//		C[i*N+j]=0;
+	//		for (k=0; k<N; k++){
+	//			C[i*N+j] = C[i*N+j] + A[i*N+k] * At[k+j*N];
+	//		}
+	//	}
+	//}	
+
+	
+	pthread_t misThreads[T];
+	int threads_ids[T];
+	
+	for(int id=0; id<T; id++){
+		threads_ids[id] = id;
+		pthread_create(&misThreads[id], NULL, &threadFunc, (void*)&threads_ids[id]);
+	}
+	
+	//Trasposicion
+	for(int id=0; id<T; id++){
+		pthread_join(misThreads[id], NULL);
+	}
+
+	mode = 1;
+	//Multiplicacion
+	
+	for(int id=0; id<T; id++){
+		pthread_join(misThreads[id], NULL);
+	}
 
 	//Verifica el resultado
 	for(i=0; i<N; i++){
@@ -59,19 +101,7 @@ int main(int argc, char*argv[]){
 	else
 		printf("Multiplicacion de matrices resultado erroneo\n");
 
-	
-	pthread_t misThreads[T];
-	int threads_ids[T];
-	
-	for(int id=0; id<T; id++){
-		threads_ids[id] = id;
-		pthread_create(&misThreads[id], NULL, &threadFunc, (void*)&threads_ids[id]);
-	}
 
-	for(int id=0; id<T; id++){
-		pthread_join(misThreads[id], NULL);
-	}	
-	
 	free(A);	
 	free(At);
 	free(C);
