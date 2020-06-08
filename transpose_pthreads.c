@@ -24,7 +24,7 @@ void *funcion(void *arg){
 int main(int argc, char*argv[]){
 
 	int i, j, k;
-	
+
 	if (argc < 3){
    		printf("\n Faltan argumentos:: N dimension de la matriz, T cantidad de threads \n");
    		return 0;
@@ -60,15 +60,15 @@ int main(int argc, char*argv[]){
   	printMatrix(A, N);
 
   	printf("\n\n");
- 	
+
  	for(int id=0; id<T; id++){
         threads_ids[id] = id;
         pthread_create(&misThreads[id], NULL, &funcion, (void*)&threads_ids[id]);
     }
 
     printMatrix(At, N);
-  	
-  	
+
+
 
   	free(A);
   	free(At);
