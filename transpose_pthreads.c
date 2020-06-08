@@ -65,7 +65,7 @@ int main(int argc, char *argv[]){
     }
 
 
-    /* Transposicion + Multiplicacion */
+    /* Trasposicion + Multiplicacion */
     timetick = dwalltime();
     //Trasposicion
 	for(int id=0; id<T; id++){
@@ -81,6 +81,13 @@ int main(int argc, char *argv[]){
 
 	printf("Tiempo en segundos %f \n", dwalltime() - timetick);
 
+	//Verifica el resultado
+  	for(i=0;i<N;i++){
+   		for(j=0;j<N;j++){
+			check=check&&(C[i*N+j]==N);
+  		 }
+  	}
+  	
 	if(check)
 		printf("Multiplicacion de matrices resultado correcto\n");
 	else
