@@ -5,6 +5,7 @@
 
 void master(int, int);
 void slave(int, int);
+double dwalltime(void);
 
 int N = 1024;
 double *A, *B, *R;
@@ -61,7 +62,7 @@ void master(int rank, int P){
 	MPI_Gather(R, N*N/P, MPI_DOUBLE, R, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 	printf("Tiempo: %f\n", dwalltime() - start);
-	
+
 	//Verifica el resultado
   	for(i=0;i<N;i++){
    		for(j=0;j<N;j++){
