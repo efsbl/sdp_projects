@@ -9,6 +9,7 @@ double dwalltime(void);
 
 int N;
 double *A;
+double totalsum;
 
 int main(int argc, char *argv[]){
 
@@ -39,7 +40,7 @@ void master(int rank, int P){
 	int i;
 	int aux = 2;
 	double localsum = 0;
-	double totalsum = 0;
+	totalsum = 0;
 	double avg;
 
 	A = (double*)malloc(sizeof(double)*N);
@@ -68,7 +69,7 @@ void master(int rank, int P){
 
 void slave(int rank, int P){
 	int i;
-	int localsum = 0;
+	double localsum = 0.0;
 	A = (double*)malloc(sizeof(double)*N/P);
 	MPI_Scatter(A, N/P, MPI_DOUBLE, A, N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	for(i = 0; i<N/P; i++){
