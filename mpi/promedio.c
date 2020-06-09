@@ -37,43 +37,50 @@ int main(int argc, char *argv[]){
 }
 
 void master(int rank, int P){
-	int i;
+	int i, j;
 	int aux = 2;
 	double localsum = 0;
 	totalsum = 0;
 	double avg;
 
-	A = (double*)malloc(sizeof(double)*N);
+	A = (double*)malloc(sizeof(double)*N*N);
 
 	//Init array
 	for(i=0; i<N; i++){
-		A[i] = aux;
-		if(aux == 2)
-			aux = 4;
-		else
-			aux = 2;
+        for(j=0; j<N; j++){
+            A[i*N+j] = aux;
+            if (aux == 2)
+                aux = 4;
+            else
+                aux = 2;
+        }
+
 	}
 
-	MPI_Scatter(A, N/P, MPI_DOUBLE, A, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Scatter(A, N*N/P, MPI_DOUBLE, A, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	for(i = 0; i<N/P; i++){
-		localsum += A[i];
+        for(j=0; j<N; j++){
+            localsum += A[i*N+j];
+        }
 	}
 
 	MPI_Reduce(&localsum, &totalsum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
-	avg = totalsum/N;
+	avg = totalsum/(N*N);
 	printf("El avg para un vector con valores '2' y '4' alternados es de %.1f", avg);
 
 
 }
 
 void slave(int rank, int P){
-	int i;
+	int i, j;
 	double localsum = 0.0;
-	A = (double*)malloc(sizeof(double)*N/P);
-	MPI_Scatter(A, N/P, MPI_DOUBLE, A, N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	A = (double*)malloc(sizeof(double)*N*N/P);
+	MPI_Scatter(A, N*N/P, MPI_DOUBLE, A, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	for(i = 0; i<N/P; i++){
-		localsum += A[i];
+        for(j=0; j<N; j++){
+            localsum += A[i*N+j];
+        }
 	}
 	MPI_Reduce(&localsum, &totalsum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
