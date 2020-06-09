@@ -7,13 +7,20 @@ void master(int, int);
 void slave(int, int);
 double dwalltime(void);
 
-int N = 1024;
+int N;
 double *A, *B, *R;
 
 int main(int argc, char *argv[]){
 
 	int rank;
 	int P; //cantidad de procesos
+
+	if (argc < 2){
+   		printf("\n Faltan argumentos:: N dimension de la matriz (N*N)");
+   		return 0;
+  	}
+
+  	N = atoi(argv[1]);
 
 	MPI_Init(&argc, &argv);
 	MPI_Comm_rank(MPI_COMM_WORLD, &rank);
