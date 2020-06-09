@@ -29,6 +29,7 @@ int main(int argc, char *argv[]){
 
 void master(int rank, int P){
 	int i, j, k;
+    int check = 1;
 
 	A = (double*)malloc(sizeof(double)*N*N);
 	B = (double*)malloc(sizeof(double)*N*N);
@@ -48,9 +49,9 @@ void master(int rank, int P){
 		for(j=0; j<N; j++){
 			R[i*N+j] = 0.0;
 			for(k=0; k<N; k++){
-				R[i*N+j] = R[i*N+j] + A[i*N+k] * B[k+j*N];	
+				R[i*N+j] = R[i*N+j] + A[i*N+k] * B[k+j*N];
 			}
-			
+
 		}
 	}
 
@@ -59,7 +60,7 @@ void master(int rank, int P){
 	//Verifica el resultado
   	for(i=0;i<N;i++){
    		for(j=0;j<N;j++){
-			check=check&&(C[i*N+j]==N);
+			check=check&&(R[i*N+j]==N);
   		 }
   	}
 
@@ -83,7 +84,7 @@ void slave(int rank, int P){
 		for(j=0; j<N; j++){
 			R[i*N+j] = 0.0;
 			for(k=0; k<N; k++){
-				R[i*N+j] = R[i*N+j] + A[i*N+k] * B[k+j*N];	
+				R[i*N+j] = R[i*N+j] + A[i*N+k] * B[k+j*N];
 			}
 		}
 	}
