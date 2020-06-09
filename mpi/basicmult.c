@@ -35,6 +35,7 @@ void master(int rank, int P){
 	B = (double*)malloc(sizeof(double)*N*N);
 	R = (double*)malloc(sizeof(double)*N*N);
 
+	//Inicializa las matrices
 	for(i=0; i<N; i++){
 		for(j=0; j<N; j++){
 			A[i*N+j] = 1.0;
@@ -42,9 +43,11 @@ void master(int rank, int P){
 		}
 	}
 
+	double start = dwalltime();
 	MPI_Bcast(B, N*N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	MPI_Scatter(A, N*N/P, MPI_DOUBLE, A, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
+	//Realiza la multiplicacion de la parte que le corresponde
 	for(i=0; i<N/P; i++){
 		for(j=0; j<N; j++){
 			R[i*N+j] = 0.0;
@@ -57,6 +60,8 @@ void master(int rank, int P){
 
 	MPI_Gather(R, N*N/P, MPI_DOUBLE, R, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
+	printf("Tiempo: %f\n", dwalltime() - start);
+	
 	//Verifica el resultado
   	for(i=0;i<N;i++){
    		for(j=0;j<N;j++){
@@ -91,4 +96,14 @@ void slave(int rank, int P){
 
 	MPI_Gather(R, N*N/P, MPI_DOUBLE, R, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
+}
+
+double dwalltime()
+{
+	double sec;
+	struct timeval tv;
+
+	gettimeofday(&tv, NULL);
+	sec = tv.tv_sec + tv.tv_usec / 1000000.0;
+	return sec;
 }
