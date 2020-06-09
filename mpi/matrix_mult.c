@@ -15,7 +15,7 @@ int P; //cantidad de procesos
 
 int main(int argc, char* argv[]){
     int myRank;
-    
+
     MPI_Init(&argc, &argv);
     //Retorna el rank del proceso dentro del grupo comm (integer)
     MPI_Comm_rank(MPI_COMM_WORLD, &myRank);
@@ -34,7 +34,7 @@ int main(int argc, char* argv[]){
 }
 
 void master(int id, int P){
-    int i, j;
+    int i, j, k;
     int check = 1;
 
     C = (double*)malloc(sizeof(double)*N*N);
@@ -53,7 +53,7 @@ void master(int id, int P){
 
     MPI_Bcast(D, N*N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     //*senfbuf, sendcount, sendtype ,*recvbuf, recvcount, rcvtype, root, comm
-    MPI_Scatter(C, N*N/P, MPI_DOUBLE, A, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    MPI_Scatter(C, N*N/P, MPI_DOUBLE, C, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
     //Multiplicar
     for (i=0; i<N/P; i++)
