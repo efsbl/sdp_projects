@@ -16,7 +16,7 @@ unsigned int max = 0;
 unsigned int localmax = 1;
 double sum = 0;
 double localsum = 0;
-double prom = 0;
+double prom;
 int rank;
 MPI_Status *status;
 MPI_Request *request;
@@ -67,7 +67,7 @@ void master()
 		D[i] = 1;
 
 	}
-
+    //imprimir(A);
 	double start = dwalltime();
 	//calculo maximo de A
     MPI_Scatter(A, N * N/ P, MPI_UNSIGNED, A, N * N / P, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
@@ -83,11 +83,18 @@ void master()
 	MPI_Bcast(At, N * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	MPI_Scatter(A, N * N / P, MPI_DOUBLE, A, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	Multiply(A, At, AAt);
+	MPI_Gather(AAt, N * N / P, MPI_DOUBLE, AAt, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	
+	//imprimir(AAt);
+	
     //multiplico C*D
 	MPI_Bcast(D, N * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	MPI_Scatter(C, N * N / P, MPI_DOUBLE, C, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	Multiply(C, D, CD);
 	
+	MPI_Gather(CD, N * N / P, MPI_DOUBLE, CD, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	
+	//imprimir(CD);
 
 	//calculo avgCD
     MPI_Scatter(CD, N * N/ P, MPI_DOUBLE, CD, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -98,10 +105,15 @@ void master()
 	}
 	MPI_Reduce(&localsum, &sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 	
-	prom=(sum/(N*N))*P;
+	prom=sum/(N*N);
 	
 	//operacion final
-    for (int i = 0; i < N/P; i++){
+	
+	MPI_Bcast(&prom, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&max, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+	MPI_Scatter(AAt, N * N/ P, MPI_DOUBLE, AAt, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Scatter(CD, N * N/ P, MPI_DOUBLE, CD, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    for (int i = 0; i < N; i++){
 		for (int j = 0; j < N; j++){
 			R[i * N + j] = ((AAt[i * N + j] + ((CD[i * N + j])*max))*prom);	
 		}	
@@ -123,7 +135,7 @@ void master()
 	printf("\n");
 	printf("Promedio: %f ", prom);
 	printf("\n");
-	imprimir(R);
+	//imprimir(R);
 }
 
 void slave()
@@ -149,10 +161,12 @@ void slave()
 	MPI_Bcast(At, N * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	MPI_Scatter(A, N * N / P, MPI_DOUBLE, A, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	Multiply(A, At, AAt);
+	MPI_Gather(AAt, N * N / P, MPI_DOUBLE, AAt, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
 	MPI_Bcast(D, N * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	MPI_Scatter(C, N * N / P, MPI_DOUBLE, C, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	Multiply(C, D, CD);
+	MPI_Gather(CD, N * N / P, MPI_DOUBLE, CD, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   
 
     MPI_Scatter(CD, N * N/ P, MPI_DOUBLE, CD, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -162,8 +176,10 @@ void slave()
 	}
 	MPI_Reduce(&localsum, &sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
-
-
+  	MPI_Bcast(&prom, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Bcast(&max, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+	MPI_Scatter(AAt, N * N/ P, MPI_DOUBLE, AAt, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Scatter(CD, N * N/ P, MPI_DOUBLE, CD, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	for (int i = 0; i < N/P; i++){
 		for (int j = 0; j < N; j++){
 			R[i * N + j] = ((AAt[i * N + j] + ((CD[i * N + j])*max))*prom);
