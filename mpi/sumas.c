@@ -11,26 +11,23 @@ int check(double *A, int n);
 double dwalltime(void);
 void Multiply(double *X, double *Y, double *Z);
 
-unsigned int N; 
-unsigned int max = 0;
-unsigned int localmax = 1;
-double sum = 0;
-double localsum = 0;
-double prom;
-int rank;
-MPI_Status *status;
-MPI_Request *request;
-int P;
 double *A;
 double *At;
 double *AAt;
 double *C;
 double *D;
 double *CD;
-
 double *R;
 
+unsigned int N; //Matrices de tamaño NxN
+int rank; //Rank o Id de cada proceso dentro del Communicator
+int P; //Número de procesos
 
+unsigned int max = 0;
+unsigned int localmax = 1;
+double sum = 0;
+double localsum = 0;
+double prom;
 
 int main(int argc, char *argv[])
 {
@@ -51,64 +48,60 @@ int main(int argc, char *argv[])
 
 void master()
 {
-	A = (double*)malloc(sizeof(double) * N * N);
-	At = (double*)malloc(sizeof(double) * N * N);
-	C = (double*)malloc(sizeof(double) * N * N);
-	D = (double*)malloc(sizeof(double) * N * N);
-	R = (double*)malloc(sizeof(double) * N * N);
-	AAt = (double*)malloc(sizeof(double) * N * N);
-	CD = (double*)malloc(sizeof(double) * N * N);
+	A = (double*)malloc(sizeof(double)*N*N);
+	At = (double*)malloc(sizeof(double)*N*N);
+	C = (double*)malloc(sizeof(double)*N*N);
+	D = (double*)malloc(sizeof(double)*N*N);
+	R = (double*)malloc(sizeof(double)*N*N);
+	AAt = (double*)malloc(sizeof(double)*N*N);
+	CD = (double*)malloc(sizeof(double)*N*N);
 
-	for (int i = 0; i < N * N; i++)
+	//Inicialización Matrices
+	for (int i=0; i<N*N; i++)
 	{
 		A[i] = 1;
 		At[i] = 1;
 		C[i] = 1;
 		D[i] = 1;
-
 	}
-    //imprimir(A);
+    
 	double start = dwalltime();
-	//calculo maximo de A
-    MPI_Scatter(A, N * N/ P, MPI_UNSIGNED, A, N * N / P, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
-	for (int i = 0; i < N/P; i++){
-		for (int j = 0; j < N; j++){
-		  if (A[i * N + j] > localmax)
-			localmax = A[i * N + j];
+
+	//Cálculo del máximo valor de A
+    MPI_Scatter(A, N*N/P, MPI_UNSIGNED, A, N*N/P, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+	for (int i=0; i<N/P; i++){
+		for (int j=0; j<N; j++){
+		  if (A[i*N+j] > localmax)
+			localmax = A[i*N+j];
 		}
     }	
 	MPI_Reduce(&localmax, &max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
 
-	//multiplico A*At
-	MPI_Bcast(At, N * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	MPI_Scatter(A, N * N / P, MPI_DOUBLE, A, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	//Multiplicación A.A
+	MPI_Bcast(At, N*N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Scatter(A, N*N/P, MPI_DOUBLE, A, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	Multiply(A, At, AAt);
-	MPI_Gather(AAt, N * N / P, MPI_DOUBLE, AAt, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Gather(AAt, N*N/P, MPI_DOUBLE, AAt, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	
-	//imprimir(AAt);
-	
-    //multiplico C*D
-	MPI_Bcast(D, N * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	MPI_Scatter(C, N * N / P, MPI_DOUBLE, C, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    //Multiplicación C.D
+	MPI_Bcast(D, N*N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Scatter(C, N*N/P, MPI_DOUBLE, C, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	Multiply(C, D, CD);
+	MPI_Gather(CD, N*N/P, MPI_DOUBLE, CD, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	
-	MPI_Gather(CD, N * N / P, MPI_DOUBLE, CD, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	
-	//imprimir(CD);
-
-	//calculo avgCD
-    MPI_Scatter(CD, N * N/ P, MPI_DOUBLE, CD, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	for (int i = 0; i < N/P; i++){
-		for (int j = 0; j < N; j++){
-			localsum = localsum + CD[i * N + j];
+	//Suma de todos los valores de la matriz C.D para cálculo del promedio
+    MPI_Scatter(CD, N*N/P, MPI_DOUBLE, CD, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	for (int i=0; i<N/P; i++){
+		for (int j=0; j<N; j++){
+			localsum = localsum + CD[i*N+j];
 	    }
 	}
 	MPI_Reduce(&localsum, &sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 	
+	//Cálculo del promedio
 	prom=sum/(N*N);
 	
-	//operacion final
-	
+	//Operación final -> R = avgCD * (AA + maxA * CD)
 	MPI_Bcast(&prom, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&max, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
 	MPI_Scatter(AAt, N * N/ P, MPI_DOUBLE, AAt, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -118,9 +111,9 @@ void master()
 			R[i * N + j] = ((AAt[i * N + j] + ((CD[i * N + j])*max))*prom);	
 		}	
 	}	
-	
 	MPI_Gather(R, N * N / P, MPI_DOUBLE, R, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	
+	//Chequeo de resultado (utilizando matrices en '1' debe dar N*2*N)
     if (check(R,N))
 		printf("Resultado Correcto\n");
 	else
@@ -135,57 +128,59 @@ void master()
 	printf("\n");
 	printf("Promedio: %f ", prom);
 	printf("\n");
-	//imprimir(R);
+
 }
 
 void slave()
 {
-	A = (double*)malloc(sizeof(double) * N * N / P);
-    At = (double*)malloc(sizeof(double) * N * N);
-	C = (double*)malloc(sizeof(double) * N * N / P);
-	D = (double*)malloc(sizeof(double) * N * N);
-	AAt = (double*)malloc(sizeof(double) * N * N / P);
-	CD = (double*)malloc(sizeof(double) * N * N / P);
-	R = (double*)malloc(sizeof(double) * N * N / P);
+	A = (double*)malloc(sizeof(double)*N*N/P);
+    At = (double*)malloc(sizeof(double)*N*N);
+	C = (double*)malloc(sizeof(double)*N*N/P);
+	D = (double*)malloc(sizeof(double)*N*N);
+	AAt = (double*)malloc(sizeof(double)*N*N/P);
+	CD = (double*)malloc(sizeof(double)*N*N/P);
+	R = (double*)malloc(sizeof(double)*N*N/P);
 
-    MPI_Scatter(A, N * N/ P, MPI_UNSIGNED, A, N * N / P, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
-	for (int i = 0; i < N/P; i++)
-		for (int j = 0; j < N; j++){
-		  if (A[i * N + j] > localmax)
-			localmax = A[i * N + j];
+	//Cálculo del máximo valor de A (local)
+    MPI_Scatter(A, N*N/P, MPI_UNSIGNED, A, N*N/P, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
+	for (int i=0; i<N/P; i++)
+		for (int j=0; j<N; j++){
+		  if (A[i*N+j] > localmax)
+			localmax = A[i*N+j];
 	}
 	MPI_Reduce(&localmax, &max, 1, MPI_UNSIGNED, MPI_MAX, 0, MPI_COMM_WORLD);
 
-
-
-	MPI_Bcast(At, N * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	MPI_Scatter(A, N * N / P, MPI_DOUBLE, A, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	//Multiplicación A.A (local)
+	MPI_Bcast(At, N*N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Scatter(A, N*N/P, MPI_DOUBLE, A, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	Multiply(A, At, AAt);
-	MPI_Gather(AAt, N * N / P, MPI_DOUBLE, AAt, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Gather(AAt, N*N/P, MPI_DOUBLE, AAt, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 
-	MPI_Bcast(D, N * N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	MPI_Scatter(C, N * N / P, MPI_DOUBLE, C, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	//Multiplicación C.D (local)
+	MPI_Bcast(D, N*N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Scatter(C, N*N/P, MPI_DOUBLE, C, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	Multiply(C, D, CD);
-	MPI_Gather(CD, N * N / P, MPI_DOUBLE, CD, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Gather(CD, N*N/P, MPI_DOUBLE, CD, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
   
-
-    MPI_Scatter(CD, N * N/ P, MPI_DOUBLE, CD, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	for (int i = 0; i < N/P; i++)
-		for (int j = 0; j < N; j++){
-			localsum = localsum + CD[i * N + j];
+	//Suma (local) de los valores de la matriz para posterior cálculo del promedio
+    MPI_Scatter(CD, N*N/P, MPI_DOUBLE, CD, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	for (int i=0; i<N/P; i++)
+		for (int j=0; j<N; j++){
+			localsum = localsum + CD[i*N+j];
 	}
 	MPI_Reduce(&localsum, &sum, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD);
 
+	//Operación final (local) -> R = avgCD * (AA + maxA * CD)
   	MPI_Bcast(&prom, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	MPI_Bcast(&max, 1, MPI_UNSIGNED, 0, MPI_COMM_WORLD);
-	MPI_Scatter(AAt, N * N/ P, MPI_DOUBLE, AAt, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	MPI_Scatter(CD, N * N/ P, MPI_DOUBLE, CD, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-	for (int i = 0; i < N/P; i++){
-		for (int j = 0; j < N; j++){
-			R[i * N + j] = ((AAt[i * N + j] + ((CD[i * N + j])*max))*prom);
+	MPI_Scatter(AAt, N*N/P, MPI_DOUBLE, AAt, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Scatter(CD, N*N/P, MPI_DOUBLE, CD, N* N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	for (int i=0; i<N/P; i++){
+		for (int j=0; j<N; j++){
+			R[i*N+j] = ((AAt[i*N+j] + ((CD[i*N+j])*max))*prom);
 		}	
 	}	
-	MPI_Gather(R, N * N / P, MPI_DOUBLE, R, N * N / P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+	MPI_Gather(R, N*N/P, MPI_DOUBLE, R, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 	
 }
 
@@ -202,11 +197,11 @@ double dwalltime()
 
 void imprimir(double *m)
 {
-	for (int i = 0; i < N; i++)
+	for (int i=0; i<N; i++)
 	{
-		for (int j = 0; j < N; j++)
+		for (int j=0; j<N; j++)
 		{
-			printf("%.0f\t", m[i * N + j]);
+			printf("%.0f\t", m[i*N+j]);
 		}
 		printf("\n");
 	}
@@ -215,9 +210,9 @@ void imprimir(double *m)
 int check(double *	X, int n)
 {
     int ok = 1;
-    for(int i=0;i<n;i++){
-         for(int j=0;j<n;j++){
-		  ok=ok&&(R[i*n+j]==n*2*n);
+    for(int i=0; i<n; i++){
+         for(int j=0; j<n; j++){
+		  ok = ok && (R[i*n+j] == n*2*n);
    }
   }
   return ok;
@@ -226,16 +221,16 @@ int check(double *	X, int n)
 void Multiply(double *X, double *Y, double *Z)
 {
 	double acc = 0;
-	for (int i = 0; i < N / P; i++) 
+	for (int i=0; i<N/P; i++) 
 	{
-		for (int j = 0; j < N; j++) 
+		for (int j=0; j<N; j++) 
 		{
 			acc = 0;
-			for (int k = 0; k < N; k++)
+			for (int k=0; k<N; k++)
 			{
-				acc += X[i * N + k] * Y[k + j * N]; 
+				acc += X[i*N+k] * Y[k+j*N]; 
 			}
-			Z[i * N + j] = acc; 
+			Z[i*N+j] = acc; 
 		}
 	}
 }
