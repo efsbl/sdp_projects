@@ -6,12 +6,11 @@
 
 //Resolver la expresion R = avgCD * (AA + maxA * CD)
 
-void master(void);
-void slave(void);
-void imprimir(double *m);
-int check(double *A, int n);
+void master(int, int, int);
+void slave(int, int, int);
+int check(double *, int);
 double dwalltime(void);
-void Multiply(double *X, double *Y, double *Z);
+void Multiply(double *, double *, double *, int, int);
 
 int main(int argc, char *argv[])
 {
@@ -42,7 +41,7 @@ int main(int argc, char *argv[])
 void master(int rank, int P, int N)
 {
 	int i, j, k;
-	double *A, *AA, *C, *D, *CD, *R;
+	double *A, *At, *AA, *C, *D, *CD, *R;
 	double localMax, globalMax;
     double localSum, globalSum;
     double avg;
@@ -62,6 +61,8 @@ void master(int rank, int P, int N)
         D[i] = 1;
     }
 
+    double start = dwalltime();
+
     //Transposición + Máximo Local
     localMax = 0;
     MPI_Bcast(A, N*N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
@@ -75,12 +76,12 @@ void master(int rank, int P, int N)
     MPI_Allreduce(&localMax, &globalMax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
     //Multiplicacion A*At
-    Multiply(A, At, AA);
+    Multiply(A, At, AA, N, P);
 
     //Multiplicacion C*D
     MPI_Bcast(D, N*N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Scatter(C, N*N/P, MPI_DOUBLE, C, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    Multiply(C, D, CD);
+    Multiply(C, D, CD, N, P);
 
     //Suma valores matriz CD y cálculo del promedio
     localSum = 0;
@@ -109,22 +110,21 @@ void master(int rank, int P, int N)
     printf("Tiempo: %f\n", dwalltime() - start);
     printf("N: %d\n", N);
     printf("P: %d\n", P);
-    printf("Max: %d\n", max);
-    printf("Promedio: %f\n", prom);
+    printf("Max: %f\n", globalMax);
+    printf("Promedio: %f\n", avg);
 
 }
 
 void slave(int rank, int P, int N)
 {
 	int i, j, k;
-	double *A, *AA, *C, *D, *CD, *R;
+	double *A, *At, *AA, *C, *D, *CD, *R;
 	double localMax, globalMax;
     double localSum, globalSum;
     double avg;
 
 	A = (double*)malloc(sizeof(double)*N*N);
 	At = (double*)malloc(sizeof(double)*N*N/P);
-
 	AA = (double*)malloc(sizeof(double)*N*N/P);
 	C = (double*)malloc(sizeof(double)*N*N/P);
 	D = (double*)malloc(sizeof(double)*N*N);
@@ -144,12 +144,12 @@ void slave(int rank, int P, int N)
     MPI_Allreduce(&localMax, &globalMax, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
 
     //Multiplicacion A*At
-    Multiply(A, At, AA);
+    Multiply(A, At, AA, N, P);
 
     //Multiplicacion C*D
     MPI_Bcast(D, N*N, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     MPI_Scatter(C, N*N/P, MPI_DOUBLE, C, N*N/P, MPI_DOUBLE, 0, MPI_COMM_WORLD);
-    Multiply(C, D, CD);
+    Multiply(C, D, CD, N, P);
 
     //Suma valores matriz CD y cálculo del promedio
     localSum = 0;
@@ -180,30 +180,18 @@ double dwalltime()
 	return sec;
 }
 
-void imprimir(double *m)
-{
-	for (int i=0; i<N; i++)
-	{
-		for (int j=0; j<N; j++)
-		{
-			printf("%.0f\t", m[i*N+j]);
-		}
-		printf("\n");
-	}
-}
-
-int check(double *	X, int n)
+int check(double *R, int N)
 {
     int ok = 1;
-    for(int i=0; i<n; i++){
-         for(int j=0; j<n; j++){
-		  ok = ok && (R[i*n+j] == n*2*n);
+    for(int i=0; i<N; i++){
+         for(int j=0; j<N; j++){
+		  ok = ok && (R[i*N+j] == N*2*N);
    }
   }
   return ok;
 }
 
-void Multiply(double *X, double *Y, double *Z)
+void Multiply(double *X, double *Y, double *Z, int N, int P)
 {
 	double acc = 0;
 	for (int i=0; i<N/P; i++)
